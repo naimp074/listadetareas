@@ -80,6 +80,14 @@ const dibujarFila = (itemTarea, fila) => {
     </tr>
   `;
 };
+const btndark = document.querySelector('.btn-dark')
+const cambiartema = () => {
+  const html = document.documentElement
+  const temaActual = html.getAttribute('data-bs-theme')
+  console.log(temaActual)
+  html.setAttribute('data-bs-theme', temaActual === 'dark' ? 'light' : 'dark')
+}
+btndark.addEventListener('click', cambiartema)
 
 const obtenerClaseEstado = (estado) => {
   switch (estado) {

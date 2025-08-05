@@ -1,3 +1,4 @@
+// app.js
 import Tarea from "./tarea.js";
 
 // Elementos del DOM
@@ -8,14 +9,15 @@ const inputDescripcion = document.getElementById('descripcion');
 const selectEstado = document.getElementById('estado');
 const tbody = document.querySelector('#tablaTareasBody');
 const sinTareas = document.getElementById('sinTareas');
+const contenedorEnProceso = document.getElementById('contenedorEnProceso');
+const contenedorTerminadas = document.getElementById('contenedorTerminadas');
 
 let estoyCreando = true;
 let idTarea = null;
 
-// Verificar si el localStorage tiene tareas, si no tiene hago un array vacío
+// Obtener tareas del localStorage o iniciar array vacío
 const listaTareas = JSON.parse(localStorage.getItem('tareasKey')) || [];
 
-// Funciones
 const guardarLocalStorage = () => {
   localStorage.setItem('tareasKey', JSON.stringify(listaTareas));
 };
@@ -24,17 +26,17 @@ const crearTarea = () => {
   const tareaNueva = new Tarea(inputDescripcion.value, selectEstado.value);
   listaTareas.push(tareaNueva);
   guardarLocalStorage();
-  
+
   Swal.fire({
     title: "Tarea creada!",
     text: `La tarea fue creada correctamente`,
     icon: "success",
     confirmButtonText: "Ok",
   });
-  
+
   limpiarFormulario();
   dibujarFila(tareaNueva, listaTareas.length);
-  verificarTareas();
+  cargarTareas();
 };
 
 function limpiarFormulario() {
@@ -43,9 +45,23 @@ function limpiarFormulario() {
 
 const cargarTareas = () => {
   tbody.innerHTML = "";
+  contenedorEnProceso.innerHTML = "";
+  contenedorTerminadas.innerHTML = "";
+
   if (listaTareas.length !== 0) {
-    listaTareas.forEach((itemTarea, indice) => dibujarFila(itemTarea, indice + 1));
+    listaTareas.forEach((itemTarea, indice) => {
+      dibujarFila(itemTarea, indice + 1);
+
+      if (itemTarea.estado === 'en proceso') {
+        contenedorEnProceso.innerHTML += crearCardTarea(itemTarea, '🕒');
+      }
+
+      if (itemTarea.estado === 'terminada') {
+        contenedorTerminadas.innerHTML += crearCardTarea(itemTarea, '✅');
+      }
+    });
   }
+
   verificarTareas();
 };
 
@@ -80,14 +96,15 @@ const dibujarFila = (itemTarea, fila) => {
     </tr>
   `;
 };
-const btndark = document.querySelector('.btn-dark')
-const cambiartema = () => {
-  const html = document.documentElement
-  const temaActual = html.getAttribute('data-bs-theme')
-  console.log(temaActual)
-  html.setAttribute('data-bs-theme', temaActual === 'dark' ? 'light' : 'dark')
-}
-btndark.addEventListener('click', cambiartema)
+
+const crearCardTarea = (tarea, icono) => {
+  return `
+    <div class="card-tarea">
+      <h5>${icono} Tarea</h5>
+      <p>${tarea.descripcion}</p>
+    </div>
+  `;
+};
 
 const obtenerClaseEstado = (estado) => {
   switch (estado) {
@@ -119,7 +136,7 @@ window.borrarTarea = (id) => {
       listaTareas.splice(indiceTarea, 1);
       guardarLocalStorage();
       cargarTareas();
-      
+
       Swal.fire({
         title: "Tarea eliminada!",
         text: "La tarea fue eliminada correctamente",
@@ -143,21 +160,20 @@ const editarTarea = () => {
   const tarea = listaTareas[indiceTarea];
 
   selectEstado.addEventListener('change', (e) => {
-  const estadoInfo = document.getElementById('estadoInfo');
-  estadoInfo.classList.remove('d-none');
-  
-  if (e.target.value === 'en proceso') {
-    estadoInfo.textContent = "Al marcar como 'En Proceso', se registrará la hora de inicio.";
-    estadoInfo.className = 'alert alert-info mt-3';
-  } else if (e.target.value === 'terminada') {
-    estadoInfo.textContent = "Al marcar como 'Terminada', la tarea se bloqueará para ediciones futuras.";
-    estadoInfo.className = 'alert alert-warning mt-3';
-  } else {
-    estadoInfo.classList.add('d-none');
-  }
-});
-  
-  // Solo permitir modificación si no está terminada o si estamos cambiando el estado
+    const estadoInfo = document.getElementById('estadoInfo');
+    estadoInfo.classList.remove('d-none');
+
+    if (e.target.value === 'en proceso') {
+      estadoInfo.textContent = "Al marcar como 'En Proceso', se registrará la hora de inicio.";
+      estadoInfo.className = 'alert alert-info mt-3';
+    } else if (e.target.value === 'terminada') {
+      estadoInfo.textContent = "Al marcar como 'Terminada', la tarea se bloqueará para ediciones futuras.";
+      estadoInfo.className = 'alert alert-warning mt-3';
+    } else {
+      estadoInfo.classList.add('d-none');
+    }
+  });
+
   if (tarea.estado === 'terminada') {
     Swal.fire({
       title: "Tarea terminada",
@@ -178,14 +194,13 @@ const editarTarea = () => {
     return;
   }
 
-  // Para tareas en proceso o creadas
   tarea.descripcion = inputDescripcion.value;
-  tarea.estado = selectEstado.value; // Esto disparará las acciones correspondientes
-  
+  tarea.estado = selectEstado.value;
+
   guardarLocalStorage();
   cargarTareas();
   modalTarea.hide();
-  
+
   Swal.fire({
     title: "Tarea actualizada!",
     text: "La tarea fue modificada correctamente",
@@ -193,7 +208,7 @@ const editarTarea = () => {
   });
 };
 
-// Manejadores de eventos
+// Eventos
 btnAgregarTarea.addEventListener('click', () => {
   limpiarFormulario();
   estoyCreando = true;
@@ -210,5 +225,14 @@ formularioTarea.addEventListener('submit', (e) => {
   modalTarea.hide();
 });
 
-// Cargar tareas al iniciar
+// Tema claro/oscuro
+const btndark = document.querySelector('.btn-dark')
+const cambiartema = () => {
+  const html = document.documentElement
+  const temaActual = html.getAttribute('data-bs-theme')
+  html.setAttribute('data-bs-theme', temaActual === 'dark' ? 'light' : 'dark')
+}
+btndark.addEventListener('click', cambiartema)
+
+// Cargar al iniciar
 cargarTareas();
